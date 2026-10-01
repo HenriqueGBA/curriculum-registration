@@ -33,6 +33,8 @@ type PdfImportResponse = {
   fullName?: string
   email?: string
   phone?: string
+  interestedArea?: string
+  professionalSummary?: string
   warnings: string[]
 }
 
@@ -212,9 +214,12 @@ function App() {
 
       setForm((currentForm) => ({
         ...currentForm,
-        fullName: data.fullName ?? currentForm.fullName,
-        email: data.email ?? currentForm.email,
-        phone: data.phone ?? currentForm.phone,
+        fullName: data.fullName || currentForm.fullName,
+        email: data.email || currentForm.email,
+        phone: data.phone || currentForm.phone,
+        interestedArea: data.interestedArea || currentForm.interestedArea,
+        professionalSummary:
+          data.professionalSummary || currentForm.professionalSummary,
       }))
 
       setPdfWarnings(data.warnings ?? [])

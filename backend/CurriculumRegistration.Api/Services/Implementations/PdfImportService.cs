@@ -41,7 +41,20 @@ public class PdfImportService : IPdfImportService
             ExtractedText = extractedText,
             Email = ExtractEmail(extractedText),
             Phone = ExtractPhone(extractedText),
-            FullName = ExtractFullName(extractedText)
+            FullName = ExtractFullName(extractedText),
+            InterestedArea = ExtractSection(
+                extractedText,
+                "Área de interesse",
+                "Área ou cargo de interesse",
+                "Cargo pretendido",
+                "Objetivo",
+                "Objetivo profissional"),
+            ProfessionalSummary = ExtractSection(
+                extractedText,
+                "Resumo profissional",
+                "Perfil profissional",
+                "Sobre mim",
+                "Apresentação profissional")
         };
 
         AddWarnings(response);
@@ -151,6 +164,97 @@ public class PdfImportService : IPdfImportService
 
         return null;
     }
+        private static string? ExtractSection(
+        string text,
+        params string[] sectionTitles)
+    {
+        var lines = text
+            .Split(
+                new[] { '\r', '\n' },
+                StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim())
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .ToList();
+
+        for (var index = 0; index < lines.Count; index++)
+        {
+            var currentLine = lines[index];
+
+            var matchingTitle = sectionTitles.FirstOrDefault(title =>
+                string.Equals(
+                    Normalize(currentLine),
+                    Normalize(title),
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (matchingTitle is null)
+            {
+                continue;
+            }
+
+            var content = new List<string>();
+
+            for (var nextIndex = index + 1; nextIndex < lines.Count; nextIndex++)
+            {
+                var nextLine = lines[nextIndex];
+
+                if (IsSectionTitle(nextLine))
+                {
+                    break;
+                }
+
+                content.Add(nextLine);
+            }
+
+            return string.Join(" ", content)
+                .Trim()
+                .NullIfEmpty();
+        }
+
+        return null;
+    }
+
+    private static bool IsSectionTitle(string line)
+    {
+        var normalizedLine = Normalize(line);
+
+        var knownTitles = new[]
+        {
+            "Área de interesse",
+            "Área ou cargo de interesse",
+            "Cargo pretendido",
+            "Objetivo",
+            "Objetivo profissional",
+            "Resumo profissional",
+            "Perfil profissional",
+            "Sobre mim",
+            "Experiência profissional",
+            "Experiência",
+            "Formação acadêmica",
+            "Formação",
+            "Tecnologias",
+            "Competências",
+            "Idiomas",
+            "Certificações",
+            "Contato"
+        };
+
+        return knownTitles.Any(title =>
+            string.Equals(
+                normalizedLine,
+                Normalize(title),
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string Normalize(string value)
+    {
+        return string.Join(
+            " ",
+            value
+                .Normalize()
+                .Split(
+                    (char[]?)null,
+                    StringSplitOptions.RemoveEmptyEntries));
+    }
 
     private static void AddWarnings(PdfImportResponse response)
     {
@@ -177,6 +281,17 @@ public class PdfImportService : IPdfImportService
         {
             response.Warnings.Add(
                 "Telefone não identificado automaticamente.");
+        }
+        if (string.IsNullOrWhiteSpace(response.InterestedArea))
+        {
+            response.Warnings.Add(
+                "Área ou cargo de interesse não identificado automaticamente.");
+        }
+
+        if (string.IsNullOrWhiteSpace(response.ProfessionalSummary))
+        {
+            response.Warnings.Add(
+                "Resumo profissional não identificado automaticamente.");
         }
     }
 }
