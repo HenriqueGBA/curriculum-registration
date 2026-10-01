@@ -1,263 +1,111 @@
-# Desenvolvimento
+# DESENVOLVIMENTO
 
-## 1. Objetivo
+## 1. Organização da solução
 
-Este projeto foi desenvolvido como parte do desafio técnico de cadastro de currículos.
+### Backend (`backend/CurriculumRegistration.Api`)
+- `Controllers`: endpoints HTTP (`CandidatesController`, `HealthController`);
+- `DTOs`: contratos de entrada/saída e validações (`CreateCandidateRequest`, `CandidateResponse`, `PdfImportResponse`);
+- `Services`: extração de texto de PDF (`IPdfImportService` / `PdfImportService`);
+- `Data`: `AppDbContext` e mapeamento EF Core;
+- `Entities`: entidade `Candidate`;
+- `Migrations`: versionamento do banco SQL Server.
 
-A proposta é permitir que uma pessoa:
+### Frontend (`frontend/src`)
+- `App.tsx`: formulário único para cadastro manual + importação de PDF, listagem e detalhes;
+- `App.css`: estilos da página e feedback visual;
+- `App.test.tsx`: testes de comportamento da interface.
 
-- cadastre um candidato manualmente;
-- envie um currículo em PDF para extração automática de dados;
-- revise ou complemente as informações extraídas;
-- consulte a lista de candidatos;
-- consulte os detalhes de um candidato.
+## 2. Decisões técnicas
 
-O desenvolvimento foi realizado priorizando uma solução simples, organizada, testável e fácil de evoluir.
+1. **Manter arquitetura existente** em vez de reescrever backend/frontend.
+2. **Leitura de PDF no backend** com PdfPig (compatível com .NET 8 e adequada ao desafio).
+3. **Formulário único** para os dois fluxos (manual e com PDF), como exigido.
+4. **Persistência SQL Server** na configuração padrão do backend.
+5. **Testes de integração backend com banco em memória** (`UseInMemoryDatabase`) para isolamento.
+6. **Mensagens de erro/sucesso explícitas** no frontend, consumindo mensagens retornadas pela API.
+7. **CORS local** configurado no backend para portas comuns do Vite (`5173` e `4173`).
 
-## 2. Organização do trabalho
+## 3. Fluxo funcional implementado
 
-O trabalho foi dividido em etapas pequenas, com validação após cada alteração:
+1. Usuário pode preencher manualmente e salvar sem depender de PDF.
+2. Usuário pode selecionar PDF e clicar em importação.
+3. Backend valida extensão/cabeçalho/tamanho (máx. 5 MB), extrai texto e tenta identificar nome/e-mail/telefone.
+4. Frontend preenche os campos encontrados e exibe warnings quando extração é parcial.
+5. Falha na leitura de PDF não bloqueia cadastro manual.
+6. Após salvar, frontend recarrega listagem e permite abrir detalhes por candidato.
 
-1. Estruturação inicial do backend;
-2. Criação do cadastro manual de candidatos;
-3. Implementação da listagem e consulta por identificador;
-4. Adição da validação dos campos obrigatórios;
-5. Implementação da importação de PDF;
-6. Criação da extração de nome, e-mail e telefone;
-7. Adição dos testes de integração do PDF;
-8. Tratamento de arquivos inválidos e PDFs corrompidos;
-9. Validação do limite máximo de 5 MB;
-10. Configuração da persistência com SQL Server e Entity Framework Core;
-11. Organização da documentação do projeto;
-12. Execução da suíte completa de testes.
-
-O trabalho foi desenvolvido em branches específicas por funcionalidade, com commits pequenos e Pull Requests direcionados para a branch `dev`.
-
-## 3. Decisões técnicas
+## 4. Validações e tratamento de erros
 
 ### Backend
+- `CreateCandidateRequest`: nome obrigatório (mín. 3), e-mail obrigatório e válido, limites de tamanho.
+- `PdfImportService`: arquivo obrigatório, extensão `.pdf`, tamanho até 5 MB, cabeçalho `%PDF-`.
+- Duplicidade de e-mail tratada no endpoint de criação com retorno `409 Conflict`.
 
-Foi escolhido o ASP.NET Core 8 por ser uma tecnologia adequada para construção de APIs REST, possuir boa integração com o Entity Framework Core e atender ao requisito do desafio.
+### Frontend
+- Validação local de obrigatoriedade e formato de e-mail antes do POST.
+- Mensagens para:
+  - sucesso de cadastro;
+  - erro de e-mail duplicado;
+  - erro de importação/leitura de PDF;
+  - falha de carregamento de lista/detalhes.
 
-A API foi organizada em:
+## 5. Uso de IA/modelos no processo
 
-- Controllers;
-- DTOs;
-- Entities;
-- Data;
-- Services;
-- Migrations.
+A IA foi usada como apoio para:
+- revisar aderência dos requisitos;
+- identificar lacunas de cobertura de testes;
+- validar mensagens de erro e edge cases;
+- organizar atualização de documentação técnica.
 
-Essa separação mantém as responsabilidades mais claras e facilita a manutenção.
+### Exemplos de pedidos feitos à IA
+- “Mapear requisitos funcionais contra endpoints e UI já existentes.”
+- “Sugerir cenários mínimos de teste para falha de leitura de PDF sem bloquear cadastro manual.”
+- “Revisar README para incluir setup full stack e limitações reais da extração.”
 
-### Banco de dados
+## 6. Adaptações/correções relevantes
 
-Foi utilizado SQL Server, conforme solicitado no desafio.
+- Frontend inicial tinha apenas formulário local sem integração com API.
+- Foi adicionada integração real com endpoints de cadastro, importação, listagem e detalhes.
+- Foi corrigida a apresentação de mensagens de erro no CSS (`.error-message` fora de media query).
+- Foi adicionada configuração de CORS no backend para uso local com Vite.
+- Foi adicionado `frontend/.env.example` para configuração sem segredo.
+- Foi adicionado PDF fictício versionado (`frontend/public/exemplos/curriculo-ficticio.pdf`).
 
-O acesso ao banco é realizado por meio do Entity Framework Core, utilizando:
+## 7. Verificação executada
 
-- `AppDbContext`;
-- configuração de entidade;
-- migrations;
-- connection string configurável por ambiente.
+Comandos de validação executados:
 
-A entidade `Candidate` possui os seguintes dados:
+- `dotnet test backend/CurriculumRegistration.Api.Tests/CurriculumRegistration.Api.Tests.csproj`
+- `npm test` (em `frontend`)
+- `npm run lint` (em `frontend`)
+- `npm run build` (em `frontend`)
 
-- nome completo;
-- e-mail;
-- telefone;
-- área de interesse;
-- resumo profissional;
-- data de criação;
-- data de atualização.
+Também foi verificada a suíte de CI/workflows existente no repositório e mantida sem mudança estrutural.
 
-Os testes de integração utilizam um banco em memória para permanecerem isolados do SQL Server local.
+## 8. Tempo aproximado
 
-### Importação de PDF
+- Levantamento e mapeamento de lacunas: ~35 min
+- Implementação frontend (integração + UI listagem/detalhes): ~90 min
+- Ajustes backend mínimos (CORS): ~10 min
+- Testes/depuração: ~45 min
+- Documentação (`README.md` e `DESENVOLVIMENTO.md`): ~35 min
 
-A leitura do PDF é realizada no backend utilizando a biblioteca PdfPig.
+**Total aproximado:** ~3h35
 
-A aplicação:
+## 9. Dificuldades e limitações
 
-1. valida a extensão do arquivo;
-2. valida o cabeçalho do PDF;
-3. valida o tamanho máximo de 5 MB;
-4. extrai o texto do documento;
-5. tenta identificar nome, e-mail e telefone;
-6. retorna os dados encontrados para preenchimento ou correção manual.
+### Dificuldades
+- Garantir testes de interface estáveis com múltiplas chamadas `fetch` em sequência.
+- Manter mudanças pequenas sem quebrar estrutura existente.
 
-A extração não tenta resolver todos os formatos possíveis de currículo. A prioridade foi implementar uma solução simples e compreensível, deixando os campos disponíveis para correção manual quando necessário.
+### Limitações atuais
+- Extração de PDF ainda depende de texto selecionável (sem OCR).
+- Regra de extração de nome é heurística e pode errar em layouts incomuns.
+- Não há paginação/filtro na listagem.
 
-### Validação
+## 10. Melhorias futuras
 
-As validações dos dados do candidato utilizam Data Annotations, incluindo:
-
-- obrigatoriedade do nome;
-- tamanho mínimo e máximo do nome;
-- obrigatoriedade do e-mail;
-- formato válido do e-mail;
-- limites dos campos opcionais.
-
-Também foram implementadas validações específicas para o arquivo PDF.
-
-## 4. Testes
-
-A solução foi desenvolvida com foco em testes automatizados.
-
-A suíte atual possui 16 testes, cobrindo:
-
-- candidato válido;
-- nome obrigatório;
-- nome com tamanho inválido;
-- e-mail obrigatório;
-- e-mail inválido;
-- cadastro de candidato;
-- normalização do e-mail;
-- rejeição de e-mail duplicado;
-- listagem de candidatos;
-- consulta de candidato;
-- candidato inexistente;
-- PDF válido;
-- arquivo vazio;
-- extensão inválida;
-- cabeçalho inválido;
-- PDF corrompido;
-- arquivo maior que 5 MB.
-
-A execução foi realizada com:
-
-```bash
-dotnet test backend/CurriculumRegistration.Api.Tests/CurriculumRegistration.Api.Tests.csproj
-```
-
-Resultado validado em 1º de outubro de 2026:
-
-```text
-Total: 16
-Falhas: 0
-Sucesso: 16
-Ignorados: 0
-```
-
-Além dos testes locais, o repositório possui workflow do GitHub Actions para executar os testes automaticamente.
-
-## 5. Uso de inteligência artificial
-
-Foi utilizada inteligência artificial como ferramenta de apoio durante o desenvolvimento.
-
-A IA foi utilizada para:
-
-- analisar mensagens de erro dos testes;
-- sugerir cenários de teste;
-- auxiliar na identificação da causa de falhas na leitura de PDF;
-- propor melhorias no tratamento de erros;
-- revisar a organização das etapas;
-- auxiliar na criação da documentação;
-- sugerir comandos Git e estrutura de Pull Requests.
-
-A IA não foi utilizada como substituta da validação técnica. Todas as alterações foram revisadas, adaptadas e executadas localmente antes de serem consideradas concluídas.
-
-## 6. Exemplos de solicitações feitas à IA
-
-Alguns exemplos de solicitações utilizadas:
-
-- análise da exceção do PdfPig relacionada ao trailer do PDF;
-- criação de um PDF mínimo válido para uso em teste;
-- sugestão de testes para arquivo PDF corrompido;
-- validação do comportamento para arquivos maiores que 5 MB;
-- revisão das mensagens retornadas pela API;
-- organização do README e do registro de desenvolvimento.
-
-As respostas foram utilizadas como sugestões iniciais. O código foi adaptado ao contexto real do projeto e validado com a execução dos testes.
-
-## 7. Correções e adaptações realizadas
-
-Durante o desenvolvimento, foi identificado que o PDF utilizado inicialmente no teste não possuía uma estrutura completa de PDF.
-
-Embora o arquivo tivesse o cabeçalho `%PDF-`, ele não possuía um trailer válido com a chave `/Size`, exigida pelo PdfPig. Isso fazia com que a importação retornasse erro `500`.
-
-A correção foi criar um PDF mínimo, porém estruturalmente válido, contendo:
-
-- catálogo;
-- página;
-- conteúdo;
-- fonte;
-- tabela `xref`;
-- trailer;
-- referência `/Size`.
-
-Também foi adicionado tratamento para PDFs corrompidos, fazendo a API retornar `400 Bad Request` com uma mensagem clara em vez de expor um erro interno `500`.
-
-## 8. Limitações conhecidas
-
-A extração de dados do PDF possui limitações, especialmente em documentos:
-
-- digitalizados como imagem;
-- com várias colunas;
-- com tabelas complexas;
-- com layouts pouco estruturados;
-- com telefones ou e-mails em formatos incomuns.
-
-A solução não utiliza OCR. Por isso, PDFs que não possuem texto selecionável podem não fornecer dados para extração.
-
-Quando uma informação não é encontrada, o fluxo permite que o usuário preencha ou corrija os dados manualmente.
-
-## 9. Pendências e próximos passos
-
-O backend possui o fluxo principal de cadastro, consulta e importação de PDF.
-
-A principal pendência é a implementação do frontend, que deverá fornecer:
-
-- formulário único para cadastro manual e importação de PDF;
-- preenchimento dos campos a partir dos dados extraídos;
-- possibilidade de correção manual;
-- listagem de candidatos;
-- tela de detalhes;
-- mensagens de sucesso e erro;
-- integração com os endpoints da API.
-
-Outras melhorias possíveis:
-
-- substituir o tratamento genérico de exceções por exceções específicas;
-- adicionar logs estruturados;
-- adicionar testes com SQL Server real;
-- adicionar paginação na listagem;
-- melhorar a extração para diferentes padrões de currículo;
-- adicionar OCR para PDFs escaneados;
-- adicionar testes end-to-end do frontend.
-
-## 10. Verificação da solução
-
-A solução foi verificada por meio de:
-
-- compilação do backend;
-- execução dos testes automatizados;
-- validação das respostas HTTP;
-- verificação das mensagens de erro;
-- validação do comportamento com banco em memória;
-- revisão dos arquivos alterados;
-- execução do fluxo de branches e Pull Requests;
-- atualização da branch `dev` após os merges.
-
-O resultado atual da suíte é de 16 testes aprovados.
-
-## 11. Tempo aproximado
-
-O tempo foi distribuído entre:
-
-- análise dos requisitos;
-- implementação do backend;
-- criação e ajuste dos testes;
-- investigação de erros na leitura de PDF;
-- configuração das migrations;
-- documentação;
-- revisão e validação dos Pull Requests.
-
-
-## 12. Conclusão
-
-O projeto foi desenvolvido priorizando clareza, simplicidade e validação incremental.
-
-A implementação atual possui um backend funcional para cadastro e consulta de candidatos, importação de currículos em PDF, validações, persistência preparada para SQL Server e uma suíte automatizada com 16 testes aprovados.
-
-As limitações e pendências estão documentadas para facilitar a continuidade do desenvolvimento, principalmente a implementação do frontend e a evolução da extração de dados dos currículos.
+- Adicionar OCR opcional para PDFs escaneados.
+- Tornar extração de nome mais robusta com heurísticas adicionais.
+- Adicionar paginação, busca e ordenação na listagem.
+- Incluir testes end-to-end (ex.: Playwright) cobrindo fluxo completo.

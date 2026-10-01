@@ -1,90 +1,81 @@
 # Curriculum Registration
 
-Desafio técnico para cadastro e consulta de currículos.
+Aplicação full stack para cadastro de candidatos com preenchimento manual e importação opcional de currículo em PDF.
 
-## Tecnologias utilizadas
+## Tecnologias e versões
 
-- Backend: ASP.NET Core 8 / .NET 8
-- Banco de dados: SQL Server
-- ORM: Entity Framework Core 8
-- Leitura de PDF: PdfPig
-- Testes: xUnit e ASP.NET Core TestServer
-- Documentação da API: Swagger
+### Backend
+- .NET SDK 8
+- ASP.NET Core 8 (`net8.0`)
+- Entity Framework Core 8.0.31 (`SqlServer`, `Design`, `Tools`)
+- PdfPig 0.1.16
+- Swagger (Swashbuckle.AspNetCore 6.6.2)
+- xUnit + ASP.NET Core TestServer
 
-> O frontend ainda será implementado. O backend já possui os endpoints de cadastro, consulta e importação de PDF.
+### Frontend
+- Node.js 24 (mesma versão usada no CI)
+- React 19.2.8
+- TypeScript 6
+- Vite 8
+- Vitest + Testing Library
+- ESLint 10
 
-## Funcionalidades
+## Funcionalidades entregues
 
-- Cadastro manual de candidatos;
-- Consulta da lista de candidatos;
-- Consulta dos detalhes de um candidato;
-- Importação de currículo em PDF;
-- Extração automática de nome, e-mail e telefone;
-- Validação dos campos obrigatórios;
-- Validação do formato do e-mail;
-- Validação de arquivos PDF;
-- Limite máximo de 5 MB para arquivos PDF;
-- Tratamento de PDF inválido ou corrompido;
-- Persistência em SQL Server;
-- Testes automatizados da API.
+- Cadastro manual de candidato no mesmo formulário do fluxo com PDF.
+- Importação opcional de currículo em PDF para extrair nome completo, e-mail e telefone.
+- Em caso de falha de leitura do PDF, o cadastro manual continua disponível.
+- Listagem de candidatos cadastrados.
+- Visualização de detalhes de candidato.
+- Validação frontend e backend para campos obrigatórios e formato de e-mail.
+- Validação backend do arquivo PDF (extensão `.pdf`, cabeçalho e limite de 5 MB).
+- Mensagens claras para sucesso, erros de cadastro, e-mail duplicado e falhas de leitura de PDF.
 
 ## Pré-requisitos
 
-Instale:
+- .NET SDK 8
+- Node.js 24 + npm
+- SQL Server (ou SQL Server LocalDB)
 
-- .NET 8 SDK;
-- SQL Server ou SQL Server LocalDB;
-- Git.
+## Configuração
 
-Opcionalmente, instale a ferramenta do Entity Framework:
+### Backend
 
-```bash
-dotnet tool install --global dotnet-ef
-```
+Arquivo de configuração:
+- `backend/CurriculumRegistration.Api/appsettings.Development.json`
 
-## Configuração do banco de dados
-
-A aplicação utiliza a connection string chamada `DefaultConnection`.
-
-A configuração atual de desenvolvimento está em:
-
-```text
-backend/CurriculumRegistration.Api/appsettings.Development.json
-```
-
-Exemplo usando SQL Server LocalDB:
+Exemplo sem credenciais reais:
 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=(localdb)\\MSSQLLocalDB;Database=CurriculumRegistration;Trusted_Connection=True;TrustServerCertificate=True"
+    "DefaultConnection": "Server=localhost,1433;Database=CurriculumRegistration;User Id=curriculum_user;******;TrustServerCertificate=True"
   }
 }
 ```
 
-Exemplo usando SQL Server com usuário e senha:
+> Não commite credenciais reais.
 
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost,1433;Database=CurriculumRegistration;User Id=sa;Password=SuaSenhaAqui;TrustServerCertificate=True"
-  }
-}
-```
+### Frontend
 
-Não utilize credenciais reais em arquivos versionados.
-
-## Criar ou atualizar o banco
-
-A partir da raiz do repositório, execute:
+Crie o arquivo `frontend/.env` usando o exemplo:
 
 ```bash
-dotnet ef database update ^
-  --project backend/CurriculumRegistration.Api ^
-  --startup-project backend/CurriculumRegistration.Api
+cp frontend/.env.example frontend/.env
 ```
 
-No PowerShell ou Linux, utilize:
+Conteúdo padrão:
+
+```env
+VITE_API_BASE_URL=http://localhost:5000
+```
+
+## Banco de dados (SQL Server)
+
+A estrutura está versionada com EF Core Migrations em:
+- `backend/CurriculumRegistration.Api/Migrations`
+
+Aplicar migrations:
 
 ```bash
 dotnet ef database update \
@@ -92,170 +83,62 @@ dotnet ef database update \
   --startup-project backend/CurriculumRegistration.Api
 ```
 
-A migration inicial está localizada em:
+## Como executar
 
-```text
-backend/CurriculumRegistration.Api/Migrations/
-```
-
-Ela cria a tabela `Candidates` com os campos:
-
-- `Id`;
-- `FullName`;
-- `Email`;
-- `Phone`;
-- `InterestedArea`;
-- `ProfessionalSummary`;
-- `CreatedAt`;
-- `UpdatedAt`.
-
-## Executar a API
-
-Na raiz do projeto:
+### Backend
 
 ```bash
 dotnet run --project backend/CurriculumRegistration.Api
 ```
 
-Durante o desenvolvimento, a API disponibiliza:
+### Frontend
 
-```text
-http://localhost:5000
+```bash
+cd frontend
+npm ci
+npm run dev
 ```
 
-O Swagger pode ser acessado em:
+## Endpoints principais
 
-```text
-http://localhost:5000/swagger
-```
+- `POST /api/candidates` — cadastro de candidato
+- `GET /api/candidates` — listagem
+- `GET /api/candidates/{id}` — detalhes
+- `POST /api/candidates/import-pdf` — importação de PDF (multipart/form-data com campo `file`)
 
-A porta pode variar conforme o ambiente configurado em `launchSettings.json`.
+## Testes e validações
 
-## Endpoints
-
-### Cadastrar candidato
-
-```http
-POST /api/candidates
-```
-
-Exemplo:
-
-```json
-{
-  "fullName": "Maria Silva Oliveira",
-  "email": "maria.oliveira@example.com",
-  "phone": "(11) 98888-7777",
-  "interestedArea": "Desenvolvimento Backend",
-  "professionalSummary": "Desenvolvedora .NET"
-}
-```
-
-### Listar candidatos
-
-```http
-GET /api/candidates
-```
-
-### Consultar candidato por identificador
-
-```http
-GET /api/candidates/{id}
-```
-
-### Importar currículo em PDF
-
-```http
-POST /api/candidates/import-pdf
-```
-
-O campo do formulário multipart deve se chamar:
-
-```text
-file
-```
-
-O arquivo deve:
-
-- possuir extensão `.pdf`;
-- possuir cabeçalho PDF válido;
-- ter no máximo 5 MB.
-
-A importação tenta identificar:
-
-- nome completo;
-- e-mail;
-- telefone.
-
-A extração pode retornar informações incompletas. Nesse caso, os dados podem ser preenchidos ou corrigidos manualmente antes do cadastro.
-
-## Limitações da leitura de PDF
-
-A solução utiliza extração de texto e funciona melhor com PDFs que possuem texto selecionável.
-
-A identificação pode ser incompleta em casos como:
-
-- currículos digitalizados como imagem;
-- documentos com várias colunas;
-- layouts muito complexos;
-- informações divididas entre tabelas;
-- telefones ou e-mails formatados de maneira incomum.
-
-Quando uma informação não for identificada, o cadastro manual continua disponível.
-
-## Executar os testes
-
-Execute:
+### Backend
 
 ```bash
 dotnet test backend/CurriculumRegistration.Api.Tests/CurriculumRegistration.Api.Tests.csproj
 ```
 
-A suíte cobre:
+Cobertura inclui: cadastro válido, validações, e-mail duplicado, listagem/detalhes e cenários de PDF (válido, inválido, vazio, extensão inválida, cabeçalho inválido, >5 MB e PDF corrompido).
 
-- validação de nome;
-- validação de e-mail;
-- cadastro de candidato;
-- rejeição de e-mail duplicado;
-- consulta de candidato;
-- listagem de candidatos;
-- importação de PDF válido;
-- arquivo vazio;
-- extensão inválida;
-- cabeçalho inválido;
-- PDF corrompido;
-- arquivo maior que 5 MB.
+### Frontend
 
-Os testes de integração utilizam banco de dados em memória para permanecerem isolados do SQL Server local.
-
-## Estrutura principal
-
-```text
-backend/
-├── CurriculumRegistration.Api/
-│   ├── Controllers/
-│   ├── Data/
-│   ├── DTOs/
-│   ├── Entities/
-│   ├── Migrations/
-│   └── Services/
-└── CurriculumRegistration.Api.Tests/
+```bash
+cd frontend
+npm test
+npm run lint
+npm run build
 ```
 
-## Uso de inteligência artificial
+Cobertura inclui: validações do formulário, cadastro com sucesso, erro de e-mail duplicado, comportamento quando leitura de PDF falha e fluxo de listagem/detalhes.
 
-O desenvolvimento utiliza assistência de inteligência artificial para:
+## Currículo fictício para teste
 
-- sugerir testes;
-- revisar mensagens de erro;
-- auxiliar na organização das etapas;
-- analisar falhas de testes;
-- apoiar a documentação.
+Arquivo disponível em:
+- `frontend/public/exemplos/curriculo-ficticio.pdf`
 
-As decisões finais, adaptações, execução dos comandos e validação dos resultados são realizadas pelo desenvolvedor.
+Use este arquivo no botão de importação de PDF para testar o preenchimento automático.
 
-Mais detalhes estão disponíveis em:
+## Limitações conhecidas da extração de PDF
 
-```text
-DESENVOLVIMENTO.md
-```
+A extração é textual (sem OCR). Pode falhar ou retornar dados parciais em:
+- PDFs escaneados como imagem;
+- layouts com múltiplas colunas/tabelas complexas;
+- informações em formatos muito incomuns.
+
+Quando isso ocorre, o usuário pode corrigir/completar manualmente antes de salvar.
