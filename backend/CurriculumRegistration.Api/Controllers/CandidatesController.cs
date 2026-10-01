@@ -1,6 +1,7 @@
 using CurriculumRegistration.Api.Data;
 using CurriculumRegistration.Api.DTOs;
 using CurriculumRegistration.Api.Entities;
+using CurriculumRegistration.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,10 +12,14 @@ namespace CurriculumRegistration.Api.Controllers;
 public class CandidatesController : ControllerBase
 {
     private readonly AppDbContext _dbContext;
+    private readonly IPdfImportService _pdfImportService;
 
-    public CandidatesController(AppDbContext dbContext)
+    public CandidatesController(
+        AppDbContext dbContext,
+        IPdfImportService pdfImportService)
     {
         _dbContext = dbContext;
+        _pdfImportService = pdfImportService;
     }
 
     [HttpPost]
@@ -126,5 +131,27 @@ public class CandidatesController : ControllerBase
 
         return Ok(response);
     }
-}
 
+    [HttpPost("import-pdf")]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<PdfImportResponse>> ImportPdf(
+        IFormFile file,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await _pdfImportService.ExtractAsync(
+                file,
+                cancellationToken);
+
+            return Ok(response);
+        }
+        catch (InvalidDataException exception)
+        {
+            return BadRequest(new
+            {
+                message = exception.Message
+            });
+        }
+    }
+}
