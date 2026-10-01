@@ -1,9 +1,12 @@
 using CurriculumRegistration.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using CurriculumRegistration.Api.Services.Implementations;
+using CurriculumRegistration.Api.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddScoped<IPdfImportService, PdfImportService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
