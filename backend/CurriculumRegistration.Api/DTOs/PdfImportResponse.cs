@@ -8,6 +8,9 @@ public class PdfImportResponse
 
     public string? Phone { get; set; }
 
+    public string? InterestedArea { get; set; } 
+    public string? ProfessionalSummary { get; set; }
+
     public string ExtractedText { get; set; } = string.Empty;
 
     public List<string> Warnings { get; set; } = [];
