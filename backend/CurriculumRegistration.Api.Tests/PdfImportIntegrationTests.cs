@@ -81,6 +81,31 @@ public class PdfImportIntegrationTests :
     }
 
     [Fact]
+    public async Task ImportPdf_Deve_rejeitar_arquivo_maior_que_5_mb()
+    {
+        var fileBytes = new byte[5 * 1024 * 1024 + 1];
+
+        Encoding.ASCII.GetBytes("%PDF-1.4")
+            .CopyTo(fileBytes, 0);
+
+        using var content = CreateMultipartContent(
+            fileName: "curriculo-grande.pdf",
+            fileBytes: fileBytes);
+
+        var response = await _client.PostAsync(
+            "/api/candidates/import-pdf",
+            content);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains(
+            "O arquivo PDF deve possuir no máximo 5 MB.",
+            responseBody);
+    }
+
+    [Fact]
     public async Task ImportPdf_Deve_rejeitar_cabecalho_invalido()
     {
         using var content = CreateMultipartContent(
