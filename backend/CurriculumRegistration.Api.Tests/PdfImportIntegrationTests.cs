@@ -15,6 +15,32 @@ public class PdfImportIntegrationTests :
     }
 
     [Fact]
+    public async Task ImportPdf_Deve_rejeitar_pdf_corrompido()
+    {
+        var corruptedPdf = Encoding.ASCII.GetBytes(
+            """
+            %PDF-1.4
+            este arquivo possui cabeçalho PDF, mas está corrompido
+            """);
+
+        using var content = CreateMultipartContent(
+            fileName: "curriculo-corrompido.pdf",
+            fileBytes: corruptedPdf);
+
+        var response = await _client.PostAsync(
+            "/api/candidates/import-pdf",
+            content);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        Assert.Contains(
+            "Não foi possível ler o conteúdo do arquivo PDF.",
+            responseBody);
+    }
+
+    [Fact]
     public async Task ImportPdf_Deve_rejeitar_arquivo_vazio()
     {
         using var content = CreateMultipartContent(

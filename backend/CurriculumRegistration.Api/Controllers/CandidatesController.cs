@@ -153,5 +153,12 @@ public class CandidatesController : ControllerBase
                 message = exception.Message
             });
         }
+        catch (Exception)
+        {
+            return BadRequest(new
+            {
+                message = "Não foi possível ler o conteúdo do arquivo PDF."
+            });
+        }
     }
 }
