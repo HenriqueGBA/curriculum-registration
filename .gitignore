@@ -12,7 +12,8 @@ obj/
 # Node / React
 node_modules/
 dist/
-.vite/
+.env
+.env.*
 
 # Environment / secrets
 .env
